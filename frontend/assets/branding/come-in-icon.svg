@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Come In icon</title>
+  <desc id="desc">A house-shaped C with a welcoming yellow door</desc>
+  <rect width="512" height="512" rx="118" fill="#FFFDF8"/>
+  <rect x="58" y="58" width="396" height="396" rx="98" fill="#E4F0DF"/>
+  <path d="M376 160C330 116 266 95 207 110 137 128 94 185 94 257c0 86 61 147 147 155 64 6 121-23 158-76" fill="none" stroke="#2F8F4E" stroke-width="46" stroke-linecap="round"/>
+  <path d="M128 221 256 103l128 118" fill="none" stroke="#173326" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" opacity=".94"/>
+  <rect x="207" y="258" width="98" height="130" rx="20" fill="#F0C94D"/>
+  <circle cx="280" cy="323" r="8" fill="#173326"/>
+</svg>
