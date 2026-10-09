@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="192" viewBox="0 0 680 192" role="img" aria-labelledby="title desc">
+  <title id="title">Come In</title>
+  <desc id="desc">Come In — Your Town, At Your Door</desc>
+  <rect width="680" height="192" rx="28" fill="#FFFDF8"/>
+  <g transform="translate(22 24)">
+    <rect width="144" height="144" rx="38" fill="#E4F0DF"/>
+    <path d="M112 51C95 35 72 27 51 33 27 39 13 60 13 84c0 29 21 51 50 54 22 2 42-8 55-25" fill="none" stroke="#2F8F4E" stroke-width="18" stroke-linecap="round"/>
+    <path d="M28 67 72 27l44 40" fill="none" stroke="#173326" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/>
+    <rect x="52" y="84" width="38" height="40" rx="12" fill="#F0C94D"/>
+    <circle cx="82" cy="104" r="2.8" fill="#173326"/>
+  </g>
+  <text x="190" y="91" font-family="Arial, Helvetica, sans-serif" font-size="66" font-weight="800" letter-spacing="-2" fill="#173326">Come</text>
+  <text x="398" y="91" font-family="Arial, Helvetica, sans-serif" font-size="66" font-weight="800" letter-spacing="-2" fill="#2F8F4E"> In</text>
+  <text x="192" y="124" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" letter-spacing=".8" fill="#66766B">Your Town, At Your Door</text>
+  <text x="192" y="151" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="600" letter-spacing="1.2" fill="#66766B">LOCAL SHOPS  •  HOME SERVICES  •  MORE</text>
+</svg>
