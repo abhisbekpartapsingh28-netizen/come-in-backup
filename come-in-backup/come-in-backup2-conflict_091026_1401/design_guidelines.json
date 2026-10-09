@@ -1,0 +1,222 @@
+{
+  "app_name": "Come In",
+  "personality": "1 iOS-Native Clean (with Tactile fresh colors)",
+  "personality_one_liner": "A premium, structured, and highly readable quick-commerce experience where products are the hero, elevated by fresh mint green and bright sunshine yellow accents.",
+  "color": {
+    "surface": "#FFFFFF",
+    "onSurface": "#111827",
+    "surfaceSecondary": "#F9FAFB",
+    "onSurfaceSecondary": "#374151",
+    "surfaceTertiary": "#F3F4F6",
+    "onSurfaceTertiary": "#4B5563",
+    "surfaceInverse": "#111827",
+    "onSurfaceInverse": "#FFFFFF",
+    "brand": "#10B981",
+    "brandPrimary": "#10B981",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#FBBF24",
+    "onBrandSecondary": "#111827",
+    "brandTertiary": "#D1FAE5",
+    "onBrandTertiary": "#064E3B",
+    "success": "#10B981",
+    "onSuccess": "#FFFFFF",
+    "warning": "#F59E0B",
+    "onWarning": "#FFFFFF",
+    "error": "#EF4444",
+    "onError": "#FFFFFF",
+    "info": "#4B5563",
+    "onInfo": "#FFFFFF",
+    "border": "#E5E7EB",
+    "borderStrong": "#D1D5DB",
+    "divider": "#F3F4F6",
+    "muted": "#6B7280",
+    "onBrand": "#FFFFFF"
+  },
+  "typography": {
+    "displayFontFamily": "Plus Jakarta Sans",
+    "textFontFamily": "Plus Jakarta Sans",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Handle spacing correctly dont have extra spaces where its not required, handle padding and margin corectly and subtle for buttons and components",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "1",
+  "navigation": "bottom_tabs",
+  "icon_set": "Feather",
+  "glassmorphism": {
+    "enabled": "true",
+    "do's": [
+      "Use glass on sticky headers over scrolling content",
+      "Use glass on bottom tab bar",
+      "Use glass on featured hero cards overlay sitting on backdrop"
+    ],
+    "dont's": [
+      "Never blur form fields, body text, or entire screens",
+      "Never use on low-end android devices (fallback to solid surfaceSecondary)"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Home",
+      "purpose": "Displays quick-commerce modules with high-quality visual hierarchy.",
+      "states": {
+        "loading": "Centered brand spinner",
+        "empty": "No items available near you.",
+        "error": "Failed to load feed. Retry button."
+      },
+      "layout": "Header with 'Come In' logo and free-text Location selector (glass overlay). Large persistent search bar. Promotional hero banner. Horizontal scroll for Grocery categories and Quick delivery. Vertical lists for Popular products and Home Services. Feature card for 'Request Anything'."
+    },
+    {
+      "name": "Search",
+      "purpose": "Robust search interface for instant product discovery.",
+      "states": {
+        "loading": "Search skeletons",
+        "empty": "Illustration + 'What are you looking for today?'",
+        "error": "Failed to load results."
+      },
+      "layout": "Sticky search input at top. Recent searches chips. Grid of results with immediate Add to Cart steppers."
+    },
+    {
+      "name": "Categories",
+      "purpose": "Grid-based exploration of all grocery and home service categories.",
+      "states": {
+        "loading": "Grid skeletons",
+        "empty": "No categories found.",
+        "error": "Failed to load categories."
+      },
+      "layout": "2-column or 3-column grid layout for visually rich category tiles. Each tile should have a tinted background or a clear image."
+    },
+    {
+      "name": "ProductListing",
+      "purpose": "Vertical list of products under a category.",
+      "states": {
+        "loading": "List skeletons",
+        "empty": "No products in this category.",
+        "error": "Failed to load products."
+      },
+      "layout": "Vertical list. Each row has a clear image, title, price, and a quantity stepper (+/-) button. Do NOT show fulfilling shop name."
+    },
+    {
+      "name": "ProductDetails",
+      "purpose": "Immersive product view with clear pricing and quantity.",
+      "states": {
+        "loading": "Skeleton UI for details",
+        "empty": "Product not found.",
+        "error": "Failed to load details."
+      },
+      "layout": "Large hero image area. Title and price block. Description. Sticky Add to Cart / quantity stepper floating at the bottom with safe area padding."
+    },
+    {
+      "name": "Cart",
+      "purpose": "Checkout readiness screen with item list and price breakdown.",
+      "states": {
+        "loading": "Calculating totals",
+        "empty": "Your cart is empty. Start shopping.",
+        "error": "Failed to sync cart."
+      },
+      "layout": "List of selected items with quantity steppers. Bill details (item total, delivery fee, taxes). Sticky 'Proceed to Checkout' primary CTA at the bottom."
+    },
+    {
+      "name": "HomeServices",
+      "purpose": "List of available professional services (e.g. plumbing, cleaning).",
+      "states": {
+        "loading": "Skeleton list",
+        "empty": "No services available in your area.",
+        "error": "Failed to load services."
+      },
+      "layout": "Vertical list of service cards with hero images or tinted icons. Price per hour/visit, and 'Book' CTA."
+    },
+    {
+      "name": "RequestAnything",
+      "purpose": "Custom delivery request form (like picking up a parcel).",
+      "states": {
+        "loading": "Submitting...",
+        "empty": "Ready for your instructions.",
+        "error": "Failed to submit request."
+      },
+      "layout": "Form fields: Pickup Location, Drop Location, Package Description, Size selector chips. Sticky submit button at the bottom inside KeyboardAvoidingView."
+    },
+    {
+      "name": "Account",
+      "purpose": "User profile and settings.",
+      "states": {
+        "loading": "Loading profile",
+        "empty": "Not logged in.",
+        "error": "Failed to load."
+      },
+      "layout": "Standard list of settings rows (Orders, Addresses, Payment, Help) using feathered icons."
+    }
+  ],
+  "images": {
+    "hero_banner": {
+      "url": "https://images.unsplash.com/photo-1579113800032-c38bd7635818?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwxfHxmcmVzaCUyMG9yZ2FuaWMlMjB2ZWdldGFibGVzJTIwZmxhdGxheXxlbnwwfHx8fDE3OTE0NjM4MjV8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Fresh organic vegetables flatlay for hero banner"
+    },
+    "product_atta": {
+      "url": "https://images.unsplash.com/photo-1610725664285-7c57e6eeac3f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHwxfHxzYWNrJTIwb2YlMjB3aG9sZSUyMHdoZWF0JTIwZmxvdXJ8ZW58MHx8fHwxNzkxNDYzODI1fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Aashirvaad Atta whole wheat flour sack"
+    },
+    "product_milk": {
+      "url": "https://images.unsplash.com/photo-1634141510639-d691d86f47be?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwxfHxib3R0bGUlMjBvZiUyMGZyZXNoJTIwbWlsa3xlbnwwfHx8fDE3OTE0NjM4MjV8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Amul fresh milk bottle"
+    },
+    "product_salt": {
+      "url": "https://images.unsplash.com/photo-1634612831148-03a8550e1d52?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NjZ8MHwxfHNlYXJjaHwxfHxib3dsJTIwb2YlMjBwdXJlJTIwd2hpdGUlMjBzYWx0fGVufDB8fHx8MTc5MTQ2Mzg0Mnww&ixlib=rb-4.1.0&q=85",
+      "alt": "Tata Salt pure white salt in a bowl"
+    },
+    "service_plumbing": {
+      "url": "https://images.pexels.com/photos/6195899/pexels-photo-6195899.jpeg",
+      "alt": "Professional home service worker"
+    },
+    "request_delivery": {
+      "url": "https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHwxfHxwYWNrYWdlJTIwZGVsaXZlcnklMjBib3h8ZW58MHx8fHwxNzkxNDYzODQyfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Package delivery box handover"
+    },
+    "request_rider": {
+      "url": "https://images.unsplash.com/photo-1617347454431-f49d7ff5c3b1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwxfHxkZWxpdmVyeSUyMHJpZGVyJTIwb24lMjBzY29vdGVyfGVufDB8fHx8MTc5MTQ2MzgyNXww&ixlib=rb-4.1.0&q=85",
+      "alt": "Delivery rider on scooter"
+    }
+  },
+  "instructions_to_main_agent": [
+    "BRAND RULE: The brand name is strictly 'Come In'. Do not translate this. Do not imitate competitors like Zomato/Zepto.",
+    "Do NOT display fulfilling shop names anywhere in the UI.",
+    "COLOR THEME: Mint green (#10B981) as brand primary, sunshine yellow (#FBBF24) as secondary. Do not use blue or purple.",
+    "NAVIGATION: Implement 5 bottom tabs: Home, Categories, Search, Cart, Account.",
+    "HOME SCREEN: Implement a free-text Location selector at the top (e.g. 'Deliver to: [Input]'). Add a promotional hero banner, Grocery Categories horizontal scroll, Popular Products section, 'Quick Delivery' section, 'Home Services' entry, and 'Request Anything' entry.",
+    "COMPONENTS: Use quantity steppers (-/+) directly on product cards for an immediate add-to-cart experience.",
+    "PAGES: Build full working screens (using local mock data) for 'Home Services' (listing plumbers, cleaners, etc.) and 'Request Anything' (a form to request custom pickup/drop).",
+    "LAYOUT: Apply generous spacing and single-column or 2-col grids. Avoid full-width buttons floating randomly; make primary CTAs sticky at the bottom.",
+    "HAPTICS: Add haptic feedback to all quantity steppers (-/+) and primary action buttons (Add to cart, Checkout)."
+  ]
+}
