@@ -8,6 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { I18nProvider, useT } from "@/src/i18n";
 import { queryClient } from "@/src/query-client";
+import { AuthProvider } from "@/src/store/auth";
 import { CartProvider } from "@/src/store/cart";
 import { LocationProvider } from "@/src/store/location";
 
@@ -34,13 +35,15 @@ export default function RootLayout() {
           <SafeAreaProvider>
             <KeyboardProvider>
               <I18nProvider>
-                <LocationProvider>
-                  <CartProvider>
-                    <RTLRoot>
-                      <Stack screenOptions={{ headerShown: false }} />
-                    </RTLRoot>
-                  </CartProvider>
-                </LocationProvider>
+                <AuthProvider>
+                  <LocationProvider>
+                    <CartProvider>
+                      <RTLRoot>
+                        <Stack screenOptions={{ headerShown: false }} />
+                      </RTLRoot>
+                    </CartProvider>
+                  </LocationProvider>
+                </AuthProvider>
               </I18nProvider>
             </KeyboardProvider>
           </SafeAreaProvider>

@@ -1,7 +1,7 @@
 import Feather from "@react-native-vector-icons/feather";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Platform,
@@ -14,7 +14,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useT } from "@/src/i18n";
-import { filterShops, Shop, ShopType } from "@/src/data/shops";
+import { filterShops, Shop, ShopType, SHOPS } from "@/src/data/shops";
+import { api, resolveImage } from "@/src/lib/api";
 import { makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
 type TabKey = "all" | ShopType;
@@ -32,17 +33,46 @@ export default function ShopsScreen() {
   const [query, setQuery] = useState("");
   const [openNowOnly, setOpenNowOnly] = useState(false);
   const [deliveryOnly, setDeliveryOnly] = useState(false);
+  const [liveShops, setLiveShops] = useState<Shop[]>([]);
 
-  const shops = useMemo(
-    () =>
-      filterShops({
-        type: tab,
-        query,
-        openNowOnly,
-        deliveryOnly,
-      }),
-    [tab, query, openNowOnly, deliveryOnly],
-  );
+  // Pull approved shops from the backend and normalize them into the same
+  // shape as the seed demo shops so the existing filter + render pipeline
+  // works unchanged. Live shops always sort to the top.
+  useEffect(() => {
+    api.get<any[]>("/shops").then((rows) => {
+      const normalized: Shop[] = rows.map((s) => ({
+        id: s.id,
+        name: s.name,
+        tagline: s.tagline || "",
+        type: (s.shop_type as ShopType) || "offline",
+        categoryIds: s.category_ids || [],
+        area: s.area || "",
+        address: s.address || "",
+        phone: s.phone || "",
+        image: resolveImage(s.image_url) || "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=600&q=80",
+        openNow: Boolean(s.online),
+        hours: s.hours || "",
+        deliveryAvailable: Boolean(s.delivery_available),
+        pickupAvailable: Boolean(s.pickup_available),
+        productIds: [],
+      }));
+      setLiveShops(normalized);
+    }).catch(() => setLiveShops([]));
+  }, []);
+
+  const shops = useMemo(() => {
+    // Merge live + seed; dedupe by id in case of overlap.
+    const merged = [...liveShops, ...SHOPS.filter((s) => !liveShops.some((l) => l.id === s.id))];
+    const q = query.trim().toLowerCase();
+    return merged.filter((s) => {
+      if (tab === "online" && s.type === "offline") return false;
+      if (tab === "offline" && s.type === "online") return false;
+      if (openNowOnly && !s.openNow) return false;
+      if (deliveryOnly && !s.deliveryAvailable) return false;
+      if (!q) return true;
+      return `${s.name} ${s.tagline} ${s.area} ${s.address}`.toLowerCase().includes(q);
+    });
+  }, [tab, query, openNowOnly, deliveryOnly, liveShops]);
 
   return (
     <View style={styles.root}>

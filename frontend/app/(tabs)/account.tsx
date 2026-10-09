@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrandLogo, BrandMark } from "@/src/components/BrandLogo";
 import { useT } from "@/src/i18n";
+import { useAuth } from "@/src/store/auth";
 import { useCart } from "@/src/store/cart";
 import { useLocationCtx } from "@/src/store/location";
 import { makeStyles, radius, spacing, useTheme } from "@/src/theme";
@@ -25,7 +26,23 @@ export default function AccountScreen() {
   const { totalCount } = useCart();
   const { location } = useLocationCtx();
   const { t, current } = useT();
+  const { user, logout } = useAuth();
   const [signInOpen, setSignInOpen] = useState(false);
+
+  const sellerGroup = {
+    title: user?.role === "admin" ? "Admin" : "Shop & seller",
+    rows: [
+      user?.role === "admin"
+        ? { icon: "shield" as const, label: "Admin dashboard", onPress: () => router.push("/admin") }
+        : { icon: "shopping-bag" as const, label: user?.role === "shopkeeper" ? "My shop" : "Open your shop", onPress: () => router.push("/become-seller") },
+      ...(user?.role === "shopkeeper"
+        ? [
+            { icon: "package" as const, label: "My products", onPress: () => router.push("/seller/products") },
+            { icon: "clipboard" as const, label: "Shop orders", onPress: () => router.push("/seller/orders") },
+          ]
+        : []),
+    ],
+  };
 
   const groups: { title: string; rows: Row[] }[] = [
     {
@@ -40,10 +57,11 @@ export default function AccountScreen() {
               : t("account.empty"),
           onPress: () => router.push("/(tabs)/cart"),
         },
-        { icon: "clock", label: t("account.pastOrders"), hint: t("account.noOrders") },
+        { icon: "clock", label: t("account.pastOrders"), hint: user ? undefined : t("account.noOrders"), onPress: () => router.push("/orders") },
         { icon: "heart", label: t("account.savedItems") },
       ],
     },
+    sellerGroup,
     {
       title: t("account.delivery"),
       rows: [
@@ -84,16 +102,26 @@ export default function AccountScreen() {
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <BrandMark size={52} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{t("account.hi")}</Text>
-          <Text style={styles.sub}>{t("account.signInSub")}</Text>
+          <Text style={styles.name}>{user ? user.name : t("account.hi")}</Text>
+          <Text style={styles.sub}>{user ? user.email : t("account.signInSub")}</Text>
         </View>
-        <Pressable
-          testID="account-signin-btn"
-          onPress={() => setSignInOpen(true)}
-          style={styles.signInBtn}
-        >
-          <Text style={styles.signInText}>{t("account.signIn")}</Text>
-        </Pressable>
+        {user ? (
+          <Pressable
+            testID="account-logout-btn"
+            onPress={logout}
+            style={[styles.signInBtn, { backgroundColor: colors.surfaceTertiary }]}
+          >
+            <Text style={[styles.signInText, { color: colors.onSurface }]}>Sign out</Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            testID="account-signin-btn"
+            onPress={() => router.push("/auth")}
+            style={styles.signInBtn}
+          >
+            <Text style={styles.signInText}>{t("account.signIn")}</Text>
+          </Pressable>
+        )}
       </View>
 
       {groups.map((g) => (

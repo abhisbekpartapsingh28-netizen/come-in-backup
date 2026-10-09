@@ -2,6 +2,7 @@ import Feather from "@react-native-vector-icons/feather";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -14,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { api } from "@/src/lib/api";
 import { useLocationCtx } from "@/src/store/location";
 import { makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
@@ -32,7 +34,11 @@ export default function RequestScreen() {
   );
   const [desc, setDesc] = useState("");
   const [size, setSize] = useState("Small");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submittedRef, setSubmittedRef] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Keep drop in sync with the shared delivery address while the user hasn't
   // typed a one-off override. We track the last-synced value so we only
@@ -47,6 +53,30 @@ export default function RequestScreen() {
   }, [location, drop]);
 
   const canSubmit = pickup.trim() && drop.trim() && desc.trim();
+
+  const submit = async () => {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await api.post<any>(
+        "/requests/anything",
+        {
+          description: desc,
+          pickup,
+          drop,
+          size,
+          customer_phone: customerPhone,
+        },
+        false,
+      );
+      setSubmittedRef(res.ref);
+      setSubmitted(true);
+    } catch (e: any) {
+      setError(e?.message || "Could not send request");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -164,20 +194,41 @@ export default function RequestScreen() {
             <Text style={styles.feeSub}>Final charges depend on distance</Text>
           </View>
         </View>
+
+        <Text style={styles.label}>Phone number (optional)</Text>
+        <View style={styles.inputWrap}>
+          <Feather name="phone" size={16} color={colors.brandPrimary} />
+          <TextInput
+            testID="req-phone-input"
+            value={customerPhone}
+            onChangeText={setCustomerPhone}
+            placeholder="So we can reach you"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            keyboardType="phone-pad"
+          />
+        </View>
+        {error && <Text style={{ color: colors.error, marginTop: spacing.md, fontSize: 12 }}>{error}</Text>}
       </ScrollView>
 
       <View style={[styles.ctaBar, { paddingBottom: insets.bottom + spacing.sm }]}>
         <Pressable
           testID="req-submit-btn"
-          disabled={!canSubmit}
-          onPress={() => setSubmitted(true)}
+          disabled={!canSubmit || submitting}
+          onPress={submit}
           style={[
             styles.submitBtn,
-            !canSubmit && { backgroundColor: colors.borderStrong },
+            (!canSubmit || submitting) && { backgroundColor: colors.borderStrong },
           ]}
         >
-          <Text style={styles.submitText}>Submit request</Text>
-          <Feather name="arrow-right" size={18} color={colors.onBrandPrimary} />
+          {submitting ? (
+            <ActivityIndicator color={colors.onBrandPrimary} />
+          ) : (
+            <>
+              <Text style={styles.submitText}>Submit request</Text>
+              <Feather name="arrow-right" size={18} color={colors.onBrandPrimary} />
+            </>
+          )}
         </Pressable>
       </View>
 
@@ -188,6 +239,7 @@ export default function RequestScreen() {
               <Feather name="check" size={28} color={colors.onBrandPrimary} />
             </View>
             <Text style={styles.sheetTitle}>Request placed!</Text>
+            {submittedRef && <Text style={styles.sheetSub}>Reference {submittedRef}</Text>}
             <Text style={styles.sheetSub}>
               A rider will accept your request shortly. You'll see live status on the home screen.
             </Text>

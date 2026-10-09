@@ -144,7 +144,7 @@ export default function CartScreen() {
           <Text style={styles.checkoutTotal}>₹{total}</Text>
           <Text style={styles.checkoutLabel}>{t("cart.total")}</Text>
         </View>
-        <Pressable testID="checkout-btn" style={styles.checkoutBtn}>
+        <Pressable testID="checkout-btn" onPress={() => router.push("/checkout")} style={styles.checkoutBtn}>
           <Text style={styles.checkoutBtnText}>{t("cart.checkout")}</Text>
           <Feather name="arrow-right" size={18} color={colors.onBrandPrimary} />
         </Pressable>

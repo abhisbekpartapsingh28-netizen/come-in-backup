@@ -2,12 +2,14 @@ import Feather from "@react-native-vector-icons/feather";
 import { Image } from "expo-image";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ProductCard } from "@/src/components/ProductCard";
 import { useT } from "@/src/i18n";
-import { getShopById, getShopProducts } from "@/src/data/shops";
+import { getShopById, getShopProducts, Shop as SeedShop } from "@/src/data/shops";
+import { api, resolveImage } from "@/src/lib/api";
 import { makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
 export default function ShopDetailsScreen() {
@@ -18,7 +20,46 @@ export default function ShopDetailsScreen() {
   const { colors } = useTheme();
   const { t } = useT();
 
-  const shop = id ? getShopById(id) : undefined;
+  // The shop can come from the live DB (approved shopkeeper) or from the
+  // in-app seed catalog. We try the API first; if nothing matches we fall
+  // back to the demo catalog so legacy IDs keep working.
+  const [liveShop, setLiveShop] = useState<any>(null);
+  const [liveProducts, setLiveProducts] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [assistOpen, setAssistOpen] = useState(false);
+  const [assistReason, setAssistReason] = useState("");
+  const [assistPhone, setAssistPhone] = useState("");
+  const [assistBusy, setAssistBusy] = useState(false);
+
+  useEffect(() => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+    (async () => {
+      try {
+        const s = await api.get<any>(`/shops/${id}`);
+        setLiveShop(s);
+        const prods = await api.get<any[]>(`/shops/${id}/products`);
+        setLiveProducts(prods);
+      } catch {
+        setLiveShop(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id]);
+
+  const seedShop: SeedShop | undefined = id ? getShopById(id) : undefined;
+  const shop: any = liveShop || seedShop;
+
+  if (loading) {
+    return (
+      <View style={styles.missing}>
+        <ActivityIndicator color={colors.brandPrimary} />
+      </View>
+    );
+  }
 
   if (!shop) {
     return (
@@ -31,25 +72,66 @@ export default function ShopDetailsScreen() {
     );
   }
 
-  const products = getShopProducts(shop);
-  const typeTag =
-    shop.type === "online"
-      ? t("shops.type.online")
-      : shop.type === "offline"
-      ? t("shops.type.offline")
-      : t("shops.type.both");
+  // Normalize fields between live + seed shapes
+  const image = liveShop ? resolveImage(liveShop.image_url) : (seedShop?.image as string | undefined);
+  const area = shop.area || "";
+  const address = shop.address || "";
+  const hours = shop.hours || "";
+  const openNow = liveShop ? Boolean(liveShop.online) : Boolean(seedShop?.openNow);
+  const shopType: string = shop.shop_type || seedShop?.type || "offline";
+  const deliveryAvailable = Boolean(shop.delivery_available ?? seedShop?.deliveryAvailable);
+  const pickupAvailable = Boolean(shop.pickup_available ?? seedShop?.pickupAvailable);
+  const phoneNumber: string = shop.phone || "";
+  const whatsapp: string = shop.whatsapp || "";
+  const lat = shop.latitude;
+  const lng = shop.longitude;
 
-  const callShop = async () => {
-    const url = `tel:${shop.phone}`;
+  const products = liveProducts ?? (seedShop ? getShopProducts(seedShop) : []);
+  const typeTag =
+    shopType === "online" ? t("shops.type.online") : shopType === "offline" ? t("shops.type.offline") : t("shops.type.both");
+
+  const openUrl = async (url: string, fallbackMsg: string) => {
     try {
       const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert(t("shops.callUnavailable"), shop.phone);
-      }
+      if (supported) await Linking.openURL(url);
+      else Alert.alert(t("shops.callUnavailable"), fallbackMsg);
     } catch {
-      Alert.alert(t("shops.callUnavailable"), shop.phone);
+      Alert.alert(t("shops.callUnavailable"), fallbackMsg);
+    }
+  };
+
+  const callShop = () => openUrl(`tel:${phoneNumber}`, phoneNumber);
+  const waShop = () => {
+    const num = (whatsapp || phoneNumber).replace(/[^0-9+]/g, "").replace(/^\+/, "");
+    if (!num) {
+      Alert.alert(t("shops.callUnavailable"));
+      return;
+    }
+    openUrl(`https://wa.me/${num}?text=Hi%20${encodeURIComponent(shop.name)}`, num);
+  };
+  const directions = () => {
+    const q = lat && lng ? `${lat},${lng}` : encodeURIComponent(`${address} ${area}`);
+    const url = `https://www.google.com/maps/search/?api=1&query=${q}`;
+    openUrl(url, address);
+  };
+
+  const submitAssist = async () => {
+    if (!assistReason.trim()) return;
+    setAssistBusy(true);
+    try {
+      await api.post("/requests/assist", {
+        shop_id: liveShop?.id,
+        reason: assistReason,
+        customer_phone: assistPhone,
+      }, false);
+      setAssistOpen(false);
+      setAssistReason("");
+      setAssistPhone("");
+      Alert.alert("Request received", "A Come In agent will reach out shortly.");
+    } catch (e: any) {
+      Alert.alert("Could not submit", e?.message || "Please try again");
+    } finally {
+      setAssistBusy(false);
     }
   };
 
@@ -60,7 +142,7 @@ export default function ShopDetailsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
-          <Image source={shop.image} style={StyleSheet.absoluteFill} contentFit="cover" />
+          {image ? <Image source={image} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
           <View style={styles.heroShade} />
           <View style={[styles.topBar, { paddingTop: insets.top + spacing.sm }]}>
             <Pressable
@@ -81,7 +163,7 @@ export default function ShopDetailsScreen() {
                 styles.typePill,
                 {
                   backgroundColor:
-                    shop.type === "offline" ? colors.brandSecondary : colors.brandTertiary,
+                    shopType === "offline" ? colors.brandSecondary : colors.brandTertiary,
                 },
               ]}
             >
@@ -89,10 +171,7 @@ export default function ShopDetailsScreen() {
                 style={[
                   styles.typePillText,
                   {
-                    color:
-                      shop.type === "offline"
-                        ? colors.onBrandSecondary
-                        : colors.brandPrimary,
+                    color: shopType === "offline" ? colors.onBrandSecondary : colors.brandPrimary,
                   },
                 ]}
               >
@@ -100,32 +179,22 @@ export default function ShopDetailsScreen() {
               </Text>
             </View>
           </View>
-          <Text style={styles.tagline}>{shop.tagline}</Text>
+          {shop.tagline ? <Text style={styles.tagline}>{shop.tagline}</Text> : null}
 
           <View style={styles.metaCard}>
-            <MetaRow
-              icon="map-pin"
-              label={t("shops.detail.address")}
-              value={`${shop.area}\n${shop.address}`}
-            />
+            <MetaRow icon="map-pin" label={t("shops.detail.address")} value={`${area}\n${address}`.trim()} />
             <View style={styles.divider} />
-            <MetaRow
-              icon="clock"
-              label={t("shops.detail.hours")}
-              value={`${shop.hours} • ${shop.openNow ? t("shops.openNow") : t("shops.closed")}`}
-            />
+            <MetaRow icon="clock" label={t("shops.detail.hours")} value={`${hours}${openNow ? ` • ${t("shops.openNow")}` : ` • ${t("shops.closed")}`}`} />
             <View style={styles.divider} />
             <MetaRow
               icon="truck"
               label={t("shops.detail.services")}
               value={[
-                shop.type !== "offline" && t("shops.detail.canOrderOnline"),
-                shop.deliveryAvailable && t("shops.detail.deliveryAvailable"),
-                shop.pickupAvailable && t("shops.detail.pickupAvailable"),
-                shop.type === "offline" && t("shops.detail.visitInStore"),
-              ]
-                .filter(Boolean)
-                .join(" • ")}
+                shopType !== "offline" && t("shops.detail.canOrderOnline"),
+                deliveryAvailable && t("shops.detail.deliveryAvailable"),
+                pickupAvailable && t("shops.detail.pickupAvailable"),
+                shopType === "offline" && t("shops.detail.visitInStore"),
+              ].filter(Boolean).join(" • ")}
             />
           </View>
 
@@ -133,6 +202,20 @@ export default function ShopDetailsScreen() {
             <Pressable testID="shop-call-btn" onPress={callShop} style={styles.callBtn}>
               <Feather name="phone" size={16} color={colors.onBrandPrimary} />
               <Text style={styles.callBtnText}>{t("shops.callShop")}</Text>
+            </Pressable>
+            <Pressable testID="shop-wa-btn" onPress={waShop} style={styles.secondaryBtn}>
+              <Feather name="message-circle" size={16} color={colors.brandPrimary} />
+              <Text style={styles.secondaryText}>WhatsApp</Text>
+            </Pressable>
+          </View>
+          <View style={styles.actionRow}>
+            <Pressable testID="shop-dir-btn" onPress={directions} style={styles.secondaryBtn}>
+              <Feather name="navigation" size={16} color={colors.brandPrimary} />
+              <Text style={styles.secondaryText}>Get directions</Text>
+            </Pressable>
+            <Pressable testID="shop-assist-btn" onPress={() => setAssistOpen(true)} style={styles.secondaryBtn}>
+              <Feather name="life-buoy" size={16} color={colors.brandPrimary} />
+              <Text style={styles.secondaryText}>Come In agent</Text>
             </Pressable>
           </View>
 
@@ -144,15 +227,60 @@ export default function ShopDetailsScreen() {
             </View>
           ) : (
             <View style={styles.grid}>
-              {products.map((p) => (
-                <View key={p.id} style={styles.gridItem}>
-                  <ProductCard product={p} />
-                </View>
-              ))}
+              {products.map((p: any) => {
+                const prod = liveProducts
+                  ? {
+                      id: p.id,
+                      name: p.name,
+                      brand: p.brand || "",
+                      unit: p.unit || "",
+                      price: p.price,
+                      mrp: p.mrp,
+                      image: resolveImage(p.image_url) || "",
+                      categoryId: p.category_id || "",
+                      description: p.description || "",
+                    }
+                  : p;
+                return (
+                  <View key={prod.id} style={styles.gridItem}>
+                    <ProductCard product={prod as any} />
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>
       </ScrollView>
+
+      <Modal visible={assistOpen} transparent animationType="fade" onRequestClose={() => setAssistOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setAssistOpen(false)}>
+          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+            <Text style={styles.sheetTitle}>Request agent assistance</Text>
+            <Text style={styles.sheetSub}>Unable to reach {shop.name}? Tell us what you need — a Come In agent will take over.</Text>
+            <TextInput
+              testID="assist-reason"
+              placeholder="What do you need help with?"
+              placeholderTextColor={colors.muted}
+              value={assistReason}
+              onChangeText={setAssistReason}
+              multiline
+              style={styles.assistInput}
+            />
+            <TextInput
+              testID="assist-phone"
+              placeholder="Phone to reach you"
+              placeholderTextColor={colors.muted}
+              value={assistPhone}
+              onChangeText={setAssistPhone}
+              keyboardType="phone-pad"
+              style={styles.assistInput}
+            />
+            <Pressable testID="assist-submit" disabled={assistBusy} onPress={submitAssist} style={[styles.callBtn, { marginTop: spacing.md }, assistBusy && { opacity: 0.6 }]}>
+              {assistBusy ? <ActivityIndicator color={colors.onBrandPrimary} /> : <Text style={styles.callBtnText}>Send request</Text>}
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -261,8 +389,9 @@ const useStyles = makeStyles((colors) => ({
     backgroundColor: colors.divider,
     marginHorizontal: spacing.md,
   },
-  actionRow: { marginTop: spacing.md },
+  actionRow: { marginTop: spacing.md, flexDirection: "row", gap: spacing.sm },
   callBtn: {
+    flex: 1,
     backgroundColor: colors.brandPrimary,
     borderRadius: radius.md,
     paddingVertical: 12,
@@ -272,6 +401,45 @@ const useStyles = makeStyles((colors) => ({
     gap: spacing.sm,
   },
   callBtnText: { color: colors.onBrandPrimary, fontWeight: "800", fontSize: 14 },
+  secondaryBtn: {
+    flex: 1,
+    borderRadius: radius.md,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.brandPrimary,
+    backgroundColor: colors.surface,
+  },
+  secondaryText: { color: colors.brandPrimary, fontWeight: "800", fontSize: 13 },
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xl,
+  },
+  sheet: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  sheetTitle: { fontSize: 17, fontWeight: "800", color: colors.onSurface },
+  sheetSub: { fontSize: 12, color: colors.muted },
+  assistInput: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.surfaceTertiary,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    fontSize: 14,
+    color: colors.onSurface,
+    minHeight: 44,
+  },
   sectionTitle: {
     marginTop: spacing.xl,
     fontSize: 15,
