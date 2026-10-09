@@ -1,55 +1,63 @@
-# Come In — Product Requirements Document (restored from backup)
+# Come In — Product Requirements Document
+
+Last updated: 2026-01-09
 
 ## Original Problem Statement
-> "I have attached my existing Come In project ZIP backup. I do NOT want to build a new app from scratch.
-> Please inspect the uploaded ZIP file, extract and identify the existing project structure, and restore the existing application from its source code. Preserve all existing features, UI, branding, frontend, backend, API integrations, and configuration files wherever possible... My goal is to continue working on the SAME Come In app from this backup in this Emergent account."
+> Shopkeeper Profiles + Payments + Location + Maps + Orders + Delivery + Admin on top of the restored Come In Expo app. Preserve all existing UI, branding, catalog, cart, i18n and shops; add seller flows, payment scaffolding, location/directions, admin dashboard and strong role-based security — without rebuilding or claiming anything is live that isn't configured.
 
-Follow-up Master Prompt (user) outlined 13 upgrade phases to be executed on top of the restored codebase.
+## Tech stack (unchanged for the frontend)
+- Frontend: Expo SDK 57, expo-router (file-based), React Native Web, @tanstack/react-query, i18n context.
+- Backend: FastAPI + MongoDB (Motor), bcrypt + PyJWT Bearer-token auth, Emergent Object Storage for image persistence.
 
-## Restoration Summary (Jan 2026)
-- Extracted `come-in-backup2-conflict_091026_1401.zip` under `/app/come-in-backup/...`.
-- Verified it is an Expo (React Native Web, SDK 57) app with FastAPI backend scaffold.
-- Archived the previous CRA placeholder app at `/app/.pre-restore-archive/` (not deleted).
-- Replaced `/app/frontend` with the backup frontend and `/app/backend` with the backup backend.
-- Preserved protected env variables unchanged:
-  - `/app/frontend/.env` → `REACT_APP_BACKEND_URL`, `WDS_SOCKET_PORT`, `ENABLE_HEALTH_CHECK`
-  - `/app/backend/.env` → `MONGO_URL`, `DB_NAME`, `CORS_ORIGINS`
-- Adjusted `package.json` `start` script to `expo start --web --port 3000` so supervisor can serve the web build on port 3000 behind the Emergent ingress (`/api` → 8001, `/` → 3000).
-- Supervisor status: backend + frontend + mongodb RUNNING.
-- Live preview verified at the production preview URL — Come In homepage, categories grid, bottom tab navigation (Home / Categories / Search / Cart / Account) rendering correctly on both desktop (1920×800) and mobile (390×844).
+## Roles
+- `customer` — default on registration.
+- `shopkeeper` — auto-promoted when they create a shop.
+- `admin` — seeded idempotently from `backend/.env` (`ADMIN_EMAIL`, `ADMIN_PASSWORD`).
 
-## Tech Stack (as restored)
-- Frontend: Expo SDK 57, expo-router (file-based routing in `/app/frontend/app/`), React Native Web, TypeScript, @tanstack/react-query, React Native Reanimated, @react-native-vector-icons/feather.
-- Backend: FastAPI + Motor (MongoDB) scaffold (`/app/backend/server.py`) — currently only `/api/status` endpoints; business endpoints to be built in later phases.
-- Local data: `src/data/shops.ts`, `src/data/catalog.ts` (seed data), `src/store/cart.tsx`, `src/store/location.tsx`, i18n in `src/i18n/`.
+## What's been implemented (2026-01-09)
 
-## Core Requirements (static)
-Deliver a doorstep marketplace that bridges online delivery shops and local offline shops. Users browse shops/categories, add items to cart, place orders, and can "Request Anything" when an item is unlisted. English/Hindi language toggle. Shopkeepers register, manage profile & catalog. Agent-assisted phone/WhatsApp fallback for discovery/support.
+### Backend (`/app/backend/server.py`)
+- JWT auth: `POST /api/auth/register`, `POST /api/auth/login`, `GET/PATCH /api/auth/me`.
+- Shops: `POST /api/shops`, `GET /api/shops/mine`, `PATCH /api/shops/{id}`, `PATCH /api/shops/{id}/availability`, public `GET /api/shops` + `GET /api/shops/{id}`.
+- Products: `POST /api/shops/{id}/products`, `GET /api/shops/{id}/products`, `PATCH /api/products/{id}`, `DELETE /api/products/{id}`.
+- Orders: `POST /api/orders` (guest-allowed; totals re-computed server-side; stock decrement), `GET /api/orders/mine`, `GET /api/shops/{id}/orders` (seller-scoped), `PATCH /api/orders/{id}/status`.
+- Requests: `POST /api/requests/anything`, `GET /api/requests/anything/mine`, `POST /api/requests/assist`.
+- Admin: `GET /api/admin/shops`, `PATCH /api/admin/shops/{id}/status`, `GET /api/admin/orders`, `GET/PATCH /api/admin/requests/anything`, `GET/PATCH /api/admin/requests/assist`.
+- Uploads: `POST /api/uploads/image` + `GET /api/uploads/{path}` via Emergent Object Storage (persists across deploys; 5 MB cap, image-only allowlist).
+- Startup: creates indexes (unique email, shop/product/order foreign keys) and idempotently reseeds admin.
+- Tests: 23/23 pytest cases pass (`/app/backend/tests/backend_test.py`).
 
-## User Personas
-- Shopper (consumer): browses, filters by online/offline, orders, requests items, pays COD/online.
-- Shopkeeper: registers, manages shop profile and product catalog, receives orders.
-- Agent / Admin: approves shops, handles assistance requests, operational dashboard.
+### Frontend
+- API client with Bearer-token persistence (`src/lib/api.ts`) + `resolveImage()` helper for `/api/uploads` URLs.
+- `AuthProvider` in `src/store/auth.tsx`, mounted inside existing `_layout.tsx` provider stack.
+- New screens: `/auth`, `/become-seller`, `/seller/products`, `/seller/orders`, `/admin`, `/checkout`, `/orders`.
+- Existing screens upgraded in-place:
+  - `app/(tabs)/account.tsx` — real sign-in button, Sign-out, "Open your shop" / seller rows / "Admin dashboard" based on role, Past Orders routes to `/orders`.
+  - `app/(tabs)/cart.tsx` — Proceed-to-checkout navigates to `/checkout`.
+  - `app/shop/[id].tsx` — merged live + seed shop detail, with Call / WhatsApp / Get-directions / Come-In-agent buttons wired. Agent-assist modal persists to the backend.
+  - `app/request.tsx` — Request-Anything form persists to backend; reference ref shown on success.
+  - `app/shops.tsx` — DB-approved shops merged at the top of the list; filters work across both sources.
+- Theme + i18n preserved. Hindi + 10 other languages still fall back correctly for new strings.
 
-## What's Been Implemented
-- 2026-01-09 — Restoration from backup ZIP. Expo app live on preview URL with existing UI, branding, i18n context, cart & location stores, seed catalog, bottom tab navigation.
+### Scaffolded (needs user-provided keys to activate — honestly disabled in UI)
+- Phone + OTP sign-in (Twilio)
+- Online pay via Stripe Checkout (needs sandbox claim) and Razorpay (needs merchant keys)
+- Embedded Google Maps (needs Maps JS API key — the Directions **link** fallback is live today)
+- Cloudinary adapter for images (not needed; Emergent Object Storage is handling this)
 
-## Prioritized Backlog (from user's 13-Phase Master Prompt)
-- **P1 Phase 1** — Audit & repair existing buttons, routes, navigation, shopping flow end-to-end.
-- **P1 Phase 2** — Finish English/Hindi language support (persistence + full translation coverage).
-- **P1 Phase 3** — Online vs Offline shop catalog filtering logic.
-- **P2 Phase 4** — Shopkeeper registration + shop profile management.
-- **P2 Phase 5** — Phone call (tel:) + WhatsApp links + Come In Agent assistance fallback.
-- **P2 Phase 6** — "Request Anything" form for unlisted items.
-- **P3 Phase 7** — Product & catalog management (shopkeeper side).
-- **P3 Phase 8** — Cart, checkout, delivery address, order creation.
-- **P3 Phase 9** — Payments (Stripe test key via Emergent + COD).
-- **P3 Phase 10** — Customer account, profile setup, order history.
-- **P3 Phase 11** — Admin / operational dashboard (approvals, requests).
-- **P4 Phase 12** — Design & responsiveness polish (preserve Come In brand).
-- **P4 Phase 13** — Final end-to-end test sweep.
+## Prioritized backlog (deferred to next session)
+- P1 Visible agent-assist success toast with the AG- ref (today uses `Alert.alert`).
+- P1 Fine-grained stepper testids (`stepper-{id}-plus/-minus/-value`) for a11y + automation.
+- P2 Add image gallery (multi-upload) to shop profile + product gallery.
+- P2 Order detail screen (timeline), customer "track order" live view.
+- P2 Shop/product search server-side (full-text) once lists outgrow 1 page.
+- P3 Phone + OTP sign-in (Twilio playbook)
+- P3 Stripe checkout + webhook (sandbox claim)
+- P3 Razorpay keys + checkout
+- P3 Google Maps embed + map-pin picker on shop profile
 
-## Notes for Next Agent
-- Pre-restore archive lives at `/app/.pre-restore-archive/` — safe to delete once user confirms, but keep until explicit sign-off.
-- The DevTools error in frontend logs ("Running as root without --no-sandbox is not supported") is from Expo attempting to launch Electron-based React Native DevTools; harmless for the web preview — Metro still serves on port 3000.
-- No frontend `.env` keys are consumed by the Expo app code today (`REACT_APP_BACKEND_URL` is retained for future API calls once backend endpoints are built in later phases; prefer `EXPO_PUBLIC_BACKEND_URL` going forward if you want runtime access from the Expo client, or wire `REACT_APP_BACKEND_URL` through `react-native-dotenv` babel plugin).
+## Notes for the next agent
+- Admin credentials rotate via `backend/.env` + `supervisorctl restart backend`.
+- When adding new frontend screens, remember Expo Router auto-registers any `.tsx` under `app/`.
+- Guest orders (no login) are supported; order rows store `customer_id: null`.
+- Pre-restore archive still lives at `/app/.pre-restore-archive/` — safe to delete after user sign-off.

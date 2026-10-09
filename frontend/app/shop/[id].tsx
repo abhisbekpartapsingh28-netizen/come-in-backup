@@ -119,7 +119,7 @@ export default function ShopDetailsScreen() {
     if (!assistReason.trim()) return;
     setAssistBusy(true);
     try {
-      await api.post("/requests/assist", {
+      const res = await api.post<any>("/requests/assist", {
         shop_id: liveShop?.id,
         reason: assistReason,
         customer_phone: assistPhone,
@@ -127,7 +127,10 @@ export default function ShopDetailsScreen() {
       setAssistOpen(false);
       setAssistReason("");
       setAssistPhone("");
-      Alert.alert("Request received", "A Come In agent will reach out shortly.");
+      Alert.alert(
+        "Request received",
+        `A Come In agent will reach out shortly. Reference: ${res?.ref || "sent"}`,
+      );
     } catch (e: any) {
       Alert.alert("Could not submit", e?.message || "Please try again");
     } finally {

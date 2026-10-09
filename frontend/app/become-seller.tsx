@@ -90,6 +90,7 @@ export default function BecomeSellerScreen() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -137,8 +138,6 @@ export default function BecomeSellerScreen() {
     else set.add(code);
     field("payment_methods", Array.from(set));
   };
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const pickLogo = () => {
     // Web: trigger a hidden <input type="file"> so we don't need expo-image-picker.

@@ -1,0 +1,72 @@
+{
+  "summary": "Comprehensive backend + frontend testing of Come In marketplace upgrade (auth, shops, products, orders, requests, uploads, admin). Fixed one critical React hooks-order bug on /become-seller. Backend 23/23 pytest cases pass. Core frontend flows (auth, admin approval, shop creation, request-anything, shops list, shop detail actions, language) verified end-to-end via Playwright. One UI gap on cart stepper discoverability.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "/become-seller",
+        "issue": "React error: 'Rendered more hooks than during the previous render.' due to useRef() being called AFTER early-return guards for !user and loading. Caused the whole seller onboarding to crash to the error-fallback screen immediately after shop fetch finished. FIXED by hoisting useRef above the early returns (hooks must be top-level and unconditional).",
+        "selector": "data-testid='error-fallback'",
+        "priority": "CRITICAL (fixed)"
+      },
+      {
+        "component": "shop/[id].tsx — Agent Assist modal",
+        "issue": "After tapping assist-submit the modal appears to close without visibly showing the generated AG-xxxxxx reference in the UI (backend creates the row correctly and admin tab shows it). Consider adding a visible success toast/screen like Request-Anything's modal.",
+        "selector": "data-testid='shop-assist-btn'",
+        "priority": "LOW"
+      },
+      {
+        "component": "Shop detail / Rohit Kirana product-card",
+        "issue": "Quantity stepper only exposes a parent testid stepper-{productId}; the inner + and − controls have no individual testids, making UI-driven add-to-cart hard to automate and may hurt accessibility. Suggest adding stepper-{id}-plus / stepper-{id}-minus / stepper-{id}-value.",
+        "selector": "data-testid='stepper-{id}'",
+        "priority": "LOW"
+      },
+      {
+        "component": "/shops row for newly approved DB shop",
+        "issue": "Area/address line renders empty for shops where only `address` is set (no `area`). The row shows ' · Closed' with a leading dot. Fallback to address or hide the separator when area is blank.",
+        "selector": "data-testid='shop-row-{id}'",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/checkout",
+        "issues": ["Place order button stays disabled-styled (light green) when cart is empty but 'Place order · ₹0' text is still readable — add a non-destructive hint 'Your cart is empty' when total is 0 to avoid user confusion."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Consider surfacing an on-screen confirmation (toast or modal) with the AG- reference after agent-assist submit in /shop/[id].tsx (parity with request-anything).",
+    "Add granular testids to Stepper (plus/minus/value) to enable UI add-to-cart automation and improve a11y.",
+    "On /shops, when a shop has no area, render address or omit the separator so rows don't display a stray ' · Closed'.",
+    "Optionally gray-out and label the Place-order button when cart total is 0."
+  ],
+  "critical_code_review_comments": [
+    "server.py: public GET /api/shops correctly filters status=approved. Pending shops do NOT leak — verified by test.",
+    "server.py: /shops/{id}/availability correctly rejects online toggle until status=='approved' (400 response).",
+    "server.py: orders stock decrement happens server-side using ObjectId validation — guest and authed orders both work.",
+    "server.py: doc_out strips _id and password_hash — good. BUT /auth/me and /uploads/image responses expose full user doc including the mongo-created phone/email fine.",
+    "server.py @app.on_event('startup')/('shutdown') is deprecated in FastAPI; migrate to lifespan context manager when convenient.",
+    "become-seller.tsx had hooks-order bug (now fixed). Keep ALL hooks (useState/useRef/useEffect) above every early return.",
+    "Frontend /checkout proceeds with 0 items only because UI disables the button — backend already rejects empty items (422). Good defense in depth."
+  ],
+  "updated_files": [
+    "/app/frontend/app/become-seller.tsx (hoisted useRef above early returns to fix hooks error)",
+    "/app/backend/tests/backend_test.py (new pytest regression suite, 23 cases)"
+  ],
+  "success_rate": {"backend": "100% (23/23 pytest)", "frontend": "~90% (all core flows verified; stepper add-to-cart UI not driven via automation)"},
+  "test_credentials": "Admin admin@comein.app / ComeIn@2026Admin confirmed working. Customer test accounts created on the fly via /api/auth/register.",
+  "seed_data_creation": "Created several TEST_* customers, 2 TEST_* shops (one approved via admin flow), 1 TEST_* product, 2 TEST_* orders, 1 TEST_* request-anything, 1 TEST_* agent-assist. All visible under admin tabs.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend regression lives at /app/backend/tests/backend_test.py — run with `pytest backend/tests/backend_test.py -v`. Admin seed is idempotent. Approved live shop IDs (from this run) show up at the top of /shops before the seed shops. The become-seller hooks fix is the only code change; main agent should verify no regressions on shop edit flow (loading existing shop and submitting PATCH).",
+  "rca of the issue": "React 'Rendered more hooks than during the previous render' thrown by /become-seller when the shop fetch resolved and `loading` flipped true→false. First render skipped useRef (returned early at `if (loading)` branch), second render executed it, violating the Rules of Hooks. Fix: move `useRef` to run before any conditional/early return. All useState/useEffect are already above the guards; useRef must follow the same ordering."
+}

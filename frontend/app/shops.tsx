@@ -256,9 +256,9 @@ function ShopRow({ shop, onPress }: { shop: Shop; onPress: () => void }) {
         <View style={styles.metaRow}>
           <Feather name="map-pin" size={11} color={colors.muted} />
           <Text style={styles.metaText} numberOfLines={1}>
-            {shop.area}
+            {shop.area || shop.address || ""}
           </Text>
-          <View style={styles.dot} />
+          {(shop.area || shop.address) ? <View style={styles.dot} /> : null}
           <Feather
             name="circle"
             size={9}

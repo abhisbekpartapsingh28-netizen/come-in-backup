@@ -147,7 +147,9 @@ export default function CheckoutScreen() {
           style={[styles.primary, (!canPlace || submitting) && { opacity: 0.5 }]}
         >
           {submitting ? <ActivityIndicator color={colors.onBrandPrimary} /> : (
-            <Text style={styles.primaryText}>Place order · ₹{total}</Text>
+            <Text style={styles.primaryText}>
+              {cartLines.length === 0 ? "Your cart is empty" : `Place order · ₹${total}`}
+            </Text>
           )}
         </Pressable>
       </View>
